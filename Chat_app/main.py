@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_socketio import SocketIO, join_room, leave_room
+from flask_socketio import SocketIO, join_room, leave_room, emit
 
 # Added by Ben:
 import os
@@ -24,8 +24,10 @@ def home():
 @app.route('/chat')
 def chat():
     username = request.args.get('username')
-    # room = request.args.get('room')
-    room = 1
+    room = request.args.get('room')
+
+    # username = request.args.get('from_n')
+    # room = 1
     incoming_sms = request.args.get("incoming_sms")
 
     if username and room:
@@ -36,6 +38,7 @@ def chat():
 
 @socketio.on('send_message')
 def handle_send_message_event(data):
+    print(data)
     app.logger.info("{} has sent message to the room {}: {}".format(data['username'],
                                                                     data['room'],
                                                                     data['message']))
@@ -82,7 +85,18 @@ def outbound_sms():
 
     # Capture message argument in a variable
     incoming_sms = request.args.get("message")
-    print(incoming_sms) 
+    print(incoming_sms)
+    from_n='+6045621572'
+    
+    # participant = client.conversations \
+    #     .conversations('CH6194ca428ad94766bbd997477b6d7327   ') \
+    #     .participants \
+    #     .create(
+    #         messaging_binding_address='+16045621572',
+    #         messaging_binding_proxy_address='16479058445'
+    #     )
+
+    # print(participant.sid)
 
     client.messages.create(
     # to="+15148348842", #Khalid
@@ -90,8 +104,17 @@ def outbound_sms():
     from_="+16479058445",
     body=incoming_sms
 )
- 
-    return redirect(url_for('chat', incoming_sms=incoming_sms, room=1))
+
+    data={'username': 'adf', 'room': '1', 'message': 'THIS IS A VERY LONG MESAGE TO DETECT'}
+    # emit('my response')
+    # return
+    print(data)
+
+
+  
+    return redirect(url_for('handle_send_message_event'))
+    # return redirect(url_for('chat', incoming_sms=incoming_sms, room=1, username=from_n))
+    # return redirect(handle_send_message_event, data={'username': "bob", 'room': 1 'message': 'test' })
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
