@@ -1,13 +1,11 @@
+import os
+import socketio
 from flask import Flask, render_template, request, redirect, url_for
 from flask_socketio import SocketIO, join_room, leave_room, emit, send
-import socketio
-
-sio = socketio.Client()
-
-# Added by Ben:
-import os
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
+
+sio = socketio.Client()
 
 # Add Twilio authentication
 account_sid = "ACcf38ea43fc81a1e3ad61701d6ebc096d"
@@ -28,24 +26,31 @@ def home():
 def chat():
     username = request.args.get('username')
     room = request.args.get('room')
-
-    # username = request.args.get('from_n')
-    # room = 1
     incoming_sms = request.args.get("incoming_sms")
 
     if username and room:
-        return render_template('chat.html', username=username, room=room, incoming_sms=incoming_sms)
+        return render_template('chat.html', username=username, room=room)
     else:
         return redirect(url_for('home'))
 
 
 @socketio.on('send_message')
 def handle_send_message_event(data):
-    print(data)
     app.logger.info("{} has sent message to the room {}: {}".format(data['username'],
                                                                     data['room'],
                                                                     data['message']))
     socketio.emit('receive_message', data, room=data['room'])
+    
+    # Stores the room and message in a variable
+    outbound_number = data['room']
+    outbound_message = data['message']
+
+    # Sends the message back to the user via SMS
+    client.messages.create(
+        to=outbound_number,
+        from_="+16479058445",
+        body=outbound_message
+    )
 
 
 @socketio.on('join_room')
@@ -72,25 +77,11 @@ def inbound_sms():
     from_number = request.form['From']
     to_number = request.form['To']
 
-    # Print test messages
-    print(inbound_message)
-    print(from_number)
-    print(to_number)
+    # Store the above information in a data object to pass on
+    data={'username': from_number, 'room': from_number, 'message': inbound_message}
 
-    # Resonse back to user
-    # response.message("Message recieved")
-
-    # Confirm reciept to user
-    client.messages.create(
-    # to="+15148348842", #Khalid
-    to="+16045621572", #Ben
-    from_="+16479058445",
-    body=inbound_message
-    )
-
-    data={'username': from_number, 'room': 1, 'message': inbound_message}
-
-    socketio.emit('receive_message', data)
+    # Emits a received message using the above data object to the room number
+    socketio.emit('receive_message', data, room=from_number)
 
     return 'message sent'
 
