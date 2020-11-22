@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_socketio import SocketIO, join_room, leave_room, emit
+from flask_socketio import SocketIO, join_room, leave_room, emit, send
+import socketio
+
+sio = socketio.Client()
 
 # Added by Ben:
 import os
@@ -77,44 +80,19 @@ def inbound_sms():
     # Resonse back to user
     # response.message("Message recieved")
 
-    # Redirect to outbound_sms with message paramter
-    return redirect(url_for('outbound_sms', message=inbound_message))
-
-@app.route("/outbound_sms", methods=['GET', 'POST'])
-def outbound_sms():
-
-    # Capture message argument in a variable
-    incoming_sms = request.args.get("message")
-    print(incoming_sms)
-    from_n='+6045621572'
-    
-    # participant = client.conversations \
-    #     .conversations('CH6194ca428ad94766bbd997477b6d7327   ') \
-    #     .participants \
-    #     .create(
-    #         messaging_binding_address='+16045621572',
-    #         messaging_binding_proxy_address='16479058445'
-    #     )
-
-    # print(participant.sid)
-
+    # Confirm reciept to user
     client.messages.create(
     # to="+15148348842", #Khalid
     to="+16045621572", #Ben
     from_="+16479058445",
-    body=incoming_sms
-)
+    body=inbound_message
+    )
 
-    data={'username': 'adf', 'room': '1', 'message': 'THIS IS A VERY LONG MESAGE TO DETECT'}
-    # emit('my response')
-    # return
-    print(data)
+    data={'username': from_number, 'room': 1, 'message': inbound_message}
 
+    socketio.emit('receive_message', data)
 
-  
-    return redirect(url_for('handle_send_message_event'))
-    # return redirect(url_for('chat', incoming_sms=incoming_sms, room=1, username=from_n))
-    # return redirect(handle_send_message_event, data={'username': "bob", 'room': 1 'message': 'test' })
+    return 'message sent'
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
