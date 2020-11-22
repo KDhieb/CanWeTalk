@@ -72,7 +72,7 @@ def handle_leave_room_event(data):
 def inbound_sms():
     response = MessagingResponse()
 
-    # Grab information from incoming message
+    # Grab information from incoming SMS message
     inbound_message = request.form['Body']
     from_number = request.form['From']
     to_number = request.form['To']
